@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnostic d'accompagnement — Estimation formule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1E2A24;
+    --ink-soft:#4B5A52;
+    --bg:#ECEFE7;
+    --surface:#FFFFFF;
+    --surface-alt:#F5F6F1;
+    --line:#D8DCD1;
+    --sage:#3D6B57;
+    --sage-dark:#2C4D3F;
+    --sage-tint:#DCE8DF;
+    --slate:#54728A;
+    --slate-tint:#DEE6EC;
+    --ochre:#B8863E;
+    --ochre-tint:#F0E3CB;
+    --alert:#AA5138;
+    --alert-tint:#F2DCD3;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(30,42,36,0.06), 0 6px 20px rgba(30,42,36,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Public Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:60px;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    color:var(--sage-dark);
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+
+  /* ---------- HEADER ---------- */
+  header.topbar{
+    position:sticky; top:0; z-index:30;
+    background:var(--sage-dark);
+    color:#EFF3EE;
+    padding:14px 20px;
+  }
+  .topbar-inner{
+    max-width:920px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand{display:flex; flex-direction:column; gap:2px;}
+  .brand .eyebrow{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#A9C2B3; font-weight:600;
+  }
+  .brand h1{color:#fff; font-size:19px; font-weight:600;}
+
+  .live-gauge{flex:1; min-width:260px; max-width:420px;}
+  .live-gauge-label{
+    display:flex; justify-content:space-between; font-size:11px; color:#B9CDC0; margin-bottom:5px;
+    font-family:'IBM Plex Mono',monospace; letter-spacing:.02em;
+  }
+  .live-gauge-track{
+    position:relative; height:14px; border-radius:8px; overflow:hidden;
+    background:rgba(255,255,255,0.12);
+    display:flex;
+  }
+  .live-gauge-seg{height:100%; position:relative;}
+  .live-gauge-seg::after{
+    content:""; position:absolute; right:0; top:0; bottom:0; width:1px; background:rgba(30,42,36,0.35);
+  }
+  .live-gauge-fill{
+    position:absolute; left:0; top:0; bottom:0; width:0%;
+    background:#F4CE7A;
+    border-radius:8px 0 0 8px;
+    transition:width .35s ease;
+    box-shadow: 0 0 0 1px rgba(30,42,36,0.15) inset;
+  }
+  .badge-reco{
+    padding:6px 12px; border-radius:20px; font-size:12.5px; font-weight:600;
+    background:#F4CE7A; color:#3B2E10; white-space:nowrap; font-family:'Public Sans',sans-serif;
+  }
+
+  /* ---------- STEPPER ---------- */
+  .stepper{
+    max-width:920px; margin:18px auto 0; padding:0 20px;
+    display:flex; gap:8px; overflow-x:auto;
+  }
+  .step-btn{
+    flex:1; min-width:150px;
+    background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; cursor:pointer; text-align:left;
+    font-family:'Public Sans',sans-serif; color:var(--ink-soft);
+    display:flex; align-items:center; gap:9px;
+  }
+  .step-btn .num{
+    width:22px; height:22px; border-radius:50%; background:var(--surface-alt); color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .step-btn.active{border-color:var(--sage); background:var(--sage-tint); color:var(--sage-dark);}
+  .step-btn.active .num{background:var(--sage); color:#fff;}
+  .step-btn strong{font-size:13.5px; font-weight:600; display:block;}
+  .step-btn span.sub{font-size:11px; opacity:.8;}
+
+  /* ---------- MAIN ---------- */
+  main{max-width:920px; margin:0 auto; padding:18px 20px 40px;}
+  .step-panel{display:none;}
+  .step-panel.active{display:block; animation:fadein .25s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .card h2{font-size:19px; margin-bottom:4px;}
+  .card .hint{color:var(--ink-soft); font-size:13px; margin-bottom:16px;}
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .grid.g3{grid-template-columns:1fr 1fr 1fr;}
+  @media(max-width:640px){.grid, .grid.g3{grid-template-columns:1fr;}}
+
+  label.field{display:flex; flex-direction:column; gap:5px; font-size:12.5px; font-weight:600; color:var(--ink-soft);}
+  input[type=text], input[type=date], input[type=number], select, textarea{
+    font-family:'Public Sans',sans-serif; font-size:14.5px; color:var(--ink);
+    border:1px solid var(--line); border-radius:9px; padding:10px 11px; background:#fff;
+    width:100%;
+  }
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--sage); outline-offset:1px; border-color:var(--sage);}
+  textarea{resize:vertical; min-height:64px;}
+
+  .radio-cards{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  @media(max-width:640px){.radio-cards{grid-template-columns:1fr 1fr;}}
+  .radio-card{
+    border:1.5px solid var(--line); border-radius:10px; padding:10px; cursor:pointer;
+    background:#fff; transition:.15s;
+  }
+  .radio-card input{display:none;}
+  .radio-card .lvl-title{font-weight:700; font-size:13px; display:flex; align-items:center; gap:6px;}
+  .radio-card .lvl-dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+  .radio-card .lvl-desc{font-size:11.5px; color:var(--ink-soft); margin-top:4px; line-height:1.35;}
+  .radio-card.selected{border-color:var(--sage); background:var(--sage-tint); box-shadow:0 0 0 1px var(--sage) inset;}
+
+  .chip-group{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip{
+    border:1px solid var(--line); background:#fff; border-radius:20px; padding:7px 13px; font-size:12.5px;
+    cursor:pointer; color:var(--ink-soft); user-select:none;
+  }
+  .chip.selected{background:var(--sage); border-color:var(--sage); color:#fff; font-weight:600;}
+
+  .btn{
+    border:none; border-radius:10px; padding:11px 18px; font-family:'Public Sans',sans-serif;
+    font-weight:700; font-size:14px; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+  }
+  .btn-primary{background:var(--sage); color:#fff;}
+  .btn-primary:hover{background:var(--sage-dark);}
+  .btn-ghost{background:transparent; border:1.5px solid var(--line); color:var(--ink-soft);}
+  .btn-ghost:hover{border-color:var(--sage); color:var(--sage-dark);}
+  .btn-danger{background:transparent; color:var(--alert); border:1.5px solid var(--alert-tint);}
+  .btn-sm{padding:6px 11px; font-size:12.5px; border-radius:8px;}
+  .btn-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;}
+
+  .piece-card{
+    border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; background:var(--surface-alt);
+    position:relative;
+  }
+  .piece-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px;}
+  .piece-head .piece-title-row{display:flex; align-items:center; gap:10px; flex:1;}
+  .piece-num{
+    width:26px; height:26px; border-radius:7px; background:var(--sage); color:#fff; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-family:'IBM Plex Mono',monospace; flex-shrink:0;
+  }
+  .remove-piece{background:none; border:none; color:var(--alert); cursor:pointer; font-size:12.5px; font-weight:600;}
+  .time-row{display:flex; align-items:center; gap:10px; margin-top:12px;}
+  .time-row input[type=number]{width:80px;}
+  .time-stepper{display:flex; align-items:center; gap:6px;}
+  .step-adj{width:30px; height:30px; border-radius:7px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:16px; font-weight:700; color:var(--sage-dark);}
+  .suggested-note{font-size:11.5px; color:var(--ink-soft); font-style:italic;}
+
+  #add-piece-empty{text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:13.5px;}
+
+  /* Gauge (résultat) */
+  .result-gauge-wrap{margin:10px 0 22px;}
+  .result-gauge-track{position:relative; height:34px; border-radius:10px; overflow:hidden; display:flex; border:1px solid var(--line);}
+  .rg-seg{position:relative; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:'IBM Plex Mono',monospace; color:#fff;}
+  .rg-seg.essentiel{background:var(--slate);}
+  .rg-seg.confort{background:var(--ochre);}
+  .rg-seg.serenite{background:var(--sage);}
+  .rg-marker{
+    position:absolute; top:-6px; width:0; height:0;
+    border-left:7px solid transparent; border-right:7px solid transparent; border-top:9px solid var(--ink);
+    transform:translateX(-50%);
+  }
+  .rg-total-label{margin-top:8px; font-size:13px; color:var(--ink-soft); display:flex; justify-content:space-between;}
+
+  .reco-box{
+    border-radius:12px; padding:18px; margin-bottom:18px; border:1.5px solid var(--sage);
+    background:linear-gradient(135deg, var(--sage-tint), #fff 70%);
+  }
+  .reco-box .kicker{font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--sage-dark); font-weight:700;}
+  .reco-box h2{font-size:24px; margin:4px 0 8px;}
+  .reco-box p{margin:0; color:var(--ink-soft); font-size:13.5px; line-height:1.5;}
+
+  .warning-box{
+    border-radius:12px; padding:16px; margin-bottom:18px; border:1.5px solid #D9B08C;
+    background:var(--alert-tint); color:#5C2E1B; font-size:13.5px; line-height:1.5;
+  }
+  .warning-box strong{display:block; margin-bottom:4px; font-size:13.5px;}
+
+  table.compare{width:100%; border-collapse:collapse; margin-top:6px;}
+  table.compare th, table.compare td{padding:10px 8px; text-align:left; border-bottom:1px solid var(--line); font-size:13px;}
+  table.compare th{color:var(--ink-soft); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em;}
+  table.compare tr.highlight td{background:var(--sage-tint); font-weight:600;}
+  table.compare input[type=number]{width:90px; padding:6px 8px;}
+  .formule-name{display:flex; align-items:center; gap:8px; font-weight:700;}
+  .formule-dot{width:10px; height:10px; border-radius:50%;}
+
+  .recap-list{list-style:none; padding:0; margin:0; font-size:13.5px;}
+  .recap-list li{display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px dashed var(--line);}
+  .recap-list li span:first-child{color:var(--ink-soft);}
+
+  .piece-summary-table{width:100%; border-collapse:collapse; font-size:13px; margin-top:10px;}
+  .piece-summary-table th, .piece-summary-table td{padding:8px 6px; border-bottom:1px solid var(--line); text-align:left;}
+  .piece-summary-table th{font-size:11px; text-transform:uppercase; color:var(--ink-soft); letter-spacing:.03em;}
+  .lvl-pill{display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; color:#fff;}
+
+  /* History */
+  .history-item{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:11px 12px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:#fff;
+  }
+  .history-item .hi-main strong{font-size:13.5px; display:block;}
+  .history-item .hi-main span{font-size:11.5px; color:var(--ink-soft);}
+  .history-actions{display:flex; gap:6px;}
+
+  .footer-note{text-align:center; font-size:11.5px; color:var(--ink-soft); margin-top:20px;}
+
+  /* Print */
+  @media print{
+    header.topbar, .stepper, .btn-row, #history-panel, .no-print{display:none !important;}
+    body{background:#fff; padding:0;}
+    .step-panel{display:none !important;}
+    #print-area{display:block !important;}
+    .card{box-shadow:none; border:1px solid #ccc;}
+  }
+  #print-area{display:none;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="eyebrow">Coopérative service à la personne</span>
+      <h1>Diagnostic d'accompagnement</h1>
+    </div>
+    <div class="live-gauge">
+      <div class="live-gauge-label">
+        <span id="live-total-label">0 min estimées ce mois</span>
+        <span id="live-reco-mini">—</span>
+      </div>
+      <div class="live-gauge-track">
+        <div class="live-gauge-seg" style="width:25%; background:var(--slate);"></div>
+        <div class="live-gauge-seg" style="width:25%; background:var(--ochre);"></div>
+        <div class="live-gauge-seg" style="width:50%; background:var(--sage);"></div>
+        <div class="live-gauge-fill" id="live-fill"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="stepper">
+  <button class="step-btn active" data-step="1"><span class="num">1</span><span><strong>Client</strong><span class="sub"> logement</span></span></button>
+  <button class="step-btn" data-step="2"><span class="num">2</span><span><strong>Pièces</strong><span class="sub"> diagnostic</span></span></button>
+  <button class="step-btn" data-step="3"><span class="num">3</span><span><strong>Contexte</strong><span class="sub"> fréquence</span></span></button>
+  <button class="step-btn" data-step="4"><span class="num">4</span><span><strong>Résultat</strong><span class="sub"> récap</span></span></button>
+</nav>
+
+<main>
+
+  <!-- STEP 1 -->
+  <section class="step-panel active" id="panel-1">
+    <div class="card">
+      <h2>Informations client</h2>
+      <p class="hint">À remplir en début de visite.</p>
+      <div class="grid">
+        <label class="field">Nom du client
+          <input type="text" id="c-nom" placeholder="Mme / M. ...">
+        </label>
+        <label class="field">Date de la visite
+          <input type="date" id="c-date">
+        </label>
+        <label class="field" style="grid-column:1/-1;">Adresse
+          <input type="text" id="c-adresse" placeholder="N°, rue, ville">
+        </label>
+        <label class="field">Type de logement
+          <select id="c-type">
+            <option value="Appartement">Appartement</option>
+            <option value="Maison">Maison</option>
+            <option value="Studio">Studio</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </label>
+        <label class="field">Surface approximative (m²)
+          <input type="number" id="c-surface" min="0" placeholder="ex. 65">
+        </label>
+        <label class="field">Nombre de pièces
+          <input type="number" id="c-nbpieces" min="0" placeholder="ex. 4">
+        </label>
+        <label class="field">Intervenant(e)
+          <input type="text" id="c-intervenant" placeholder="Nom du/de la salarié·e">
+        </label>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep(2)">Continuer vers le diagnostic →</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step-panel" id="panel-2">
+    <div class="card">
+      <h2>Diagnostic pièce par pièce</h2>
+      <p class="hint">Ajoutez une fiche par pièce visitée. Le temps est pré-suggéré selon le niveau d'encombrement, modifiable librement.</p>
+      <div id="pieces-container"></div>
+      <div id="add-piece-empty" style="display:none;">Aucune pièce ajoutée pour l'instant.</div>
+      <button class="btn btn-ghost" onclick="addPiece()">+ Ajouter une pièce</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(1)">← Retour</button>
+      <button class="btn btn-primary" onclick="goStep(3)">Continuer vers le contexte →</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step-panel" id="panel-3">
+    <div class="card">
+      <h2>Contexte &amp; fréquence souhaitée</h2>
+      <div class="grid">
+        <label class="field">Fréquence souhaitée
+          <select id="x-frequence">
+            <option value="Hebdomadaire">Hebdomadaire</option>
+            <option value="Bimensuelle" selected>Bimensuelle (2x/mois)</option>
+            <option value="Mensuelle">Mensuelle (1x/mois)</option>
+          </select>
+        </label>
+        <label class="field">Accessibilité du logement
+          <select id="x-accessibilite">
+            <option value="Sans contrainte">Sans contrainte</option>
+            <option value="Escaliers">Escaliers, pas d'ascenseur</option>
+            <option value="Accès difficile">Accès difficile / stationnement</option>
+          </select>
+        </label>
+        <label class="field">Autonomie du client
+          <select id="x-autonomie">
+            <option value="Autonome">Autonome, aide ponctuelle</option>
+            <option value="Aide partielle">Besoin d'aide partielle régulière</option>
+            <option value="Aide importante">Besoin d'aide importante / mobilité réduite</option>
+          </select>
+        </label>
+        <label class="field">Présence d'un tiers/aidant
+          <select id="x-aidant">
+            <option value="Non">Non</option>
+            <option value="Oui">Oui (famille / aidant présent)</option>
+          </select>
+        </label>
+      </div>
+      <label class="field" style="margin-top:12px;">Observations complémentaires
+        <textarea id="x-observations" placeholder="Points d'attention, demandes particulières, sécurité..."></textarea>
+      </label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(2)">← Retour</button>
+      <button class="btn btn-primary" onclick="goStep(4)">Voir le résultat →</button>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="step-panel" id="panel-4">
+    <div class="card">
+      <h2>Formule recommandée</h2>
+      <div class="result-gauge-wrap">
+        <div class="result-gauge-track">
+          <div class="rg-seg essentiel" style="width:25%;">Essentiel · 2h</div>
+          <div class="rg-seg confort" style="width:25%;">Confort · 4h</div>
+          <div class="rg-seg serenite" style="width:50%;">Sérénité · 8h</div>
+          <div class="rg-marker" id="rg-marker" style="left:0%;"></div>
+        </div>
+        <div class="rg-total-label">
+          <span id="rg-total-text">0 min estimées / mois</span>
+          <span id="rg-total-h">0h00</span>
+        </div>
+      </div>
+
+      <div id="warning-zone"></div>
+
+      <div class="reco-box" id="reco-box">
+        <span class="kicker">Recommandation</span>
+        <h2 id="reco-title">—</h2>
+        <p id="reco-text">Complétez le diagnostic pour obtenir une recommandation.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Comparatif des formules</h2>
+      <p class="hint">Tarifs éditables selon votre grille — le calcul intègre le crédit d'impôt de 50% (service à la personne).</p>
+      <table class="compare" id="compare-table">
+        <thead>
+          <tr><th>Formule</th><th>Volume</th><th>Tarif mensuel (€)</th><th>Après crédit d'impôt 50%</th></tr>
+        </thead>
+        <tbody>
+          <tr id="row-essentiel">
+            <td><span class="formule-name"><span class="formule-dot" style="background:var(--slate);"></span>Essentiel</span></td>
+            <td>2h / mois</td>
+            <td><input type="number" min="0" id="price-essentiel" placeholder="€ / mois"></td>
+            <td class="mono" id="net-essentiel">—</td>
+          </tr>
+          <tr id="row-confort">
+            <td><span class="formule-name"><span class="formule-dot" style="background:var(--ochre);"></span>Confort</span></td>
+            <td>4h / mois</td>
+            <td><input type="number" min="0" id="price-confort" placeholder="€ / mois"></td>
+            <td class="mono" id="net-confort">—</td>
+          </tr>
+          <tr id="row-serenite">
+            <td><span class="formule-name"><span class="formule-dot" style="background:var(--sage);"></span>Sérénité</span></td>
+            <td>8h / mois</td>
+            <td><input type="number" min="0" id="price-serenite" placeholder="€ / mois"></td>
+            <td class="mono" id="net-serenite">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Récapitulatif des pièces diagnostiquées</h2>
+      <table class="piece-summary-table" id="summary-table">
+        <thead><tr><th>Pièce</th><th>Niveau</th><th>Temps estimé</th></tr></thead>
+        <tbody id="summary-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Enregistrer ce diagnostic</h2>
+      <p class="hint">Les diagnostics sont partagés entre tous les intervenants utilisant cet outil.</p>
+      <div class="btn-row" style="margin-top:0;">
+        <button class="btn btn-primary" onclick="saveDiagnostic()">💾 Enregistrer</button>
+        <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimer / PDF</button>
+        <button class="btn btn-ghost" onclick="newDiagnostic()">+ Nouveau diagnostic</button>
+      </div>
+      <div id="save-status" style="margin-top:10px; font-size:12.5px; color:var(--sage-dark); font-weight:600;"></div>
+    </div>
+
+    <div class="card no-print" id="history-panel">
+      <h2>Historique des visites</h2>
+      <div id="history-list"></div>
+    </div>
+
+    <div class="btn-row no-print">
+      <button class="btn btn-ghost" onclick="goStep(3)">← Retour</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="footer-note no-print">Outil interne — usage par les intervenant·e·s lors des visites d'estimation.</div>
+
+<script>
+/* ---------------- STATE ---------------- */
+let state = {
+  id: null,
+  client: {},
+  pieces: [],
+  contexte: {},
+  prices: {essentiel:'', confort:'', serenite:''}
+};
+let pieceCounter = 0;
+
+const NIVEAUX = [
+  {key:'leger', label:'Léger', min:20, color:'#7FA98E', desc:"Quelques zones à trier, l'espace reste fonctionnel."},
+  {key:'modere', label:'Modéré', min:35, color:'var(--ochre)', desc:"Accumulation visible, rangements à revoir, gêne de circulation."},
+  {key:'important', label:'Important', min:55, color:'#C97A4A', desc:"Encombrement conséquent, plusieurs surfaces inutilisables."},
+  {key:'critique', label:'Critique', min:80, color:'var(--alert)', desc:"Espace peu praticable — situation sévère, orientation possible vers un référent."}
+];
+const TACHES = ["Tri et rangement","Désencombrement léger","Dons / recyclage à organiser","Optimisation du rangement","Entretien courant","Aide administrative liée au tri"];
+const PIECE_TYPES = ["Salon / séjour","Cuisine","Chambre","Salle de bain","Bureau","Entrée / couloir","Garage","Cave","Grenier","Autre"];
+
+const FORMULES = [
+  {key:'essentiel', label:'Essentiel', minMinutes:120, color:'var(--slate)'},
+  {key:'confort', label:'Confort', minMinutes:240, color:'var(--ochre)'},
+  {key:'serenite', label:'Sérénité', minMinutes:480, color:'var(--sage)'}
+];
+
+/* ---------------- NAVIGATION ---------------- */
+function goStep(n){
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.step-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+n).classList.add('active');
+  document.querySelector(`.step-btn[data-step="${n}"]`).classList.add('active');
+  if(n===4){ refreshResult(); loadHistory(); }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.querySelectorAll('.step-btn').forEach(b=>{
+  b.addEventListener('click', ()=>goStep(b.dataset.step));
+});
+
+/* ---------------- PIECES ---------------- */
+function addPiece(){
+  pieceCounter++;
+  const piece = {
+    uid: 'p'+pieceCounter+'_'+Date.now(),
+    type: PIECE_TYPES[0],
+    niveau: 'leger',
+    taches: [],
+    temps: NIVEAUX[0].min,
+    note: ''
+  };
+  state.pieces.push(piece);
+  renderPieces();
+  updateLiveGauge();
+}
+function removePiece(uid){
+  state.pieces = state.pieces.filter(p=>p.uid!==uid);
+  renderPieces();
+  updateLiveGauge();
+}
+function renderPieces(){
+  const container = document.getElementById('pieces-container');
+  const empty = document.getElementById('add-piece-empty');
+  container.innerHTML = '';
+  empty.style.display = state.pieces.length ? 'none' : 'block';
+
+  state.pieces.forEach((piece, idx)=>{
+    const div = document.createElement('div');
+    div.className = 'piece-card';
+    div.innerHTML = `
+      <div class="piece-head">
+        <div class="piece-title-row">
+          <div class="piece-num">${idx+1}</div>
+          <select data-uid="${piece.uid}" class="piece-type" style="max-width:220px;">
+            ${PIECE_TYPES.map(t=>`<option value="${t}" ${t===piece.type?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <button class="remove-piece" data-uid="${piece.uid}">Supprimer</button>
+      </div>
+
+      <div class="radio-cards">
+        ${NIVEAUX.map(n=>`
+          <label class="radio-card niv-card ${piece.niveau===n.key?'selected':''}" data-uid="${piece.uid}" data-niv="${n.key}">
+            <input type="radio" name="niv-${piece.uid}" ${piece.niveau===n.key?'checked':''}>
+            <div class="lvl-title"><span class="lvl-dot" style="background:${n.color};"></span>${n.label}</div>
+            <div class="lvl-desc">${n.desc}</div>
+          </label>
+        `).join('')}
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="hint" style="margin-bottom:6px;">Nature des tâches</div>
+        <div class="chip-group">
+          ${TACHES.map(t=>`<span class="chip tache-chip ${piece.taches.includes(t)?'selected':''}" data-uid="${piece.uid}" data-tache="${t}">${t}</span>`).join('')}
+        </div>
+      </div>
+
+      <div class="time-row">
+        <span class="hint" style="margin:0;">Temps estimé :</span>
+        <div class="time-stepper">
+          <button class="step-adj" data-uid="${piece.uid}" data-delta="-5">−</button>
+          <input type="number" class="piece-temps" data-uid="${piece.uid}" value="${piece.temps}" min="0" step="5">
+          <button class="step-adj" data-uid="${piece.uid}" data-delta="5">+</button>
+        </div>
+        <span class="suggested-note">min (suggestion auto selon le niveau, ajustable)</span>
+      </div>
+
+      <label class="field" style="margin-top:12px;">Note libre
+        <textarea class="piece-note" data-uid="${piece.uid}" placeholder="Détails, contraintes spécifiques...">${piece.note}</textarea>
+      </label>
+    `;
+    container.appendChild(div);
+  });
+
+  // bind events
+  container.querySelectorAll('.piece-type').forEach(el=>{
+    el.addEventListener('change', e=>{
+      const p = getPiece(e.target.dataset.uid); p.type = e.target.value;
+    });
+  });
+  container.querySelectorAll('.remove-piece').forEach(el=>{
+    el.addEventListener('click', e=>removePiece(e.target.dataset.uid));
+  });
+  container.querySelectorAll('.niv-card').forEach(el=>{
+    el.addEventListener('click', e=>{
+      const uid = el.dataset.uid, niv = el.dataset.niv;
+      const p = getPiece(uid);
+      p.niveau = niv;
+      p.temps = NIVEAUX.find(n=>n.key===niv).min;
+      renderPieces();
+      updateLiveGauge();
+    });
+  });
+  container.querySelectorAll('.tache-chip').forEach(el=>{
+    el.addEventListener('click', e=>{
+      const uid = el.dataset.uid, tache = el.dataset.tache;
+      const p = getPiece(uid);
+      const i = p.taches.indexOf(tache);
+      if(i>-1) p.taches.splice(i,1); else p.taches.push(tache);
+      renderPieces();
+    });
+  });
+  container.querySelectorAll('.piece-temps').forEach(el=>{
+    el.addEventListener('input', e=>{
+      const p = getPiece(e.target.dataset.uid);
+      p.temps = Math.max(0, parseInt(e.target.value)||0);
+      updateLiveGauge();
+    });
+  });
+  container.querySelectorAll('.step-adj').forEach(el=>{
+    el.addEventListener('click', e=>{
+      const uid = e.target.dataset.uid, delta = parseInt(e.target.dataset.delta);
+      const p = getPiece(uid);
+      p.temps = Math.max(0, p.temps + delta);
+      renderPieces();
+      updateLiveGauge();
+    });
+  });
+  container.querySelectorAll('.piece-note').forEach(el=>{
+    el.addEventListener('input', e=>{
+      getPiece(e.target.dataset.uid).note = e.target.value;
+    });
+  });
+}
+function getPiece(uid){ return state.pieces.find(p=>p.uid===uid); }
+
+/* ---------------- COMPUTATION ---------------- */
+function totalMinutes(){
+  return state.pieces.reduce((s,p)=>s + (p.temps||0), 0);
+}
+function recommend(totalMin){
+  if(totalMin<=0) return {formule:null};
+  for(const f of FORMULES){
+    if(totalMin <= f.minMinutes) return {formule:f, exceeds:false};
+  }
+  return {formule:FORMULES[FORMULES.length-1], exceeds:true};
+}
+function updateLiveGauge(){
+  const total = totalMinutes();
+  const capMax = 480;
+  const pct = Math.min(100, (total/capMax)*100);
+  document.getElementById('live-fill').style.width = pct+'%';
+  document.getElementById('live-total-label').textContent = `${total} min estimées ce mois`;
+  const {formule, exceeds} = recommend(total);
+  document.getElementById('live-reco-mini').textContent = formule ? (formule.label + (exceeds?' +':'')) : '—';
+}
+
+function refreshResult(){
+  const total = totalMinutes();
+  const h = Math.floor(total/60), m = total%60;
+  document.getElementById('rg-total-text').textContent = `${total} min estimées / mois`;
+  document.getElementById('rg-total-h').textContent = `${h}h${m.toString().padStart(2,'0')}`;
+
+  const pct = Math.min(100, (total/480)*100);
+  document.getElementById('rg-marker').style.left = pct+'%';
+
+  const {formule, exceeds} = recommend(total);
+  const recoBox = document.getElementById('reco-box');
+  const warnZone = document.getElementById('warning-zone');
+  warnZone.innerHTML = '';
+
+  if(!formule){
+    document.getElementById('reco-title').textContent = 'En attente de diagnostic';
+    document.getElementById('reco-text').textContent = "Ajoutez au moins une pièce dans l'étape 2 pour obtenir une recommandation.";
+    recoBox.style.borderColor = 'var(--line)';
+  } else {
+    document.getElementById('reco-title').textContent = `Formule ${formule.label}`;
+    if(exceeds){
+      document.getElementById('reco-text').innerHTML = `Le besoin estimé (${h}h${m.toString().padStart(2,'0')}/mois) dépasse le volume de la formule Sérénité (8h). Proposer la formule Sérénité comme base, avec des passages complémentaires ponctuels en sus.`;
+    } else {
+      document.getElementById('reco-text').textContent = `Le temps total estimé (${h}h${m.toString().padStart(2,'0')}/mois) correspond au volume couvert par la formule ${formule.label}.`;
+    }
+  }
+
+  // critical-level warning
+  const hasCritique = state.pieces.some(p=>p.niveau==='critique');
+  if(hasCritique){
+    warnZone.innerHTML = `<div class="warning-box"><strong>⚠ Niveau critique détecté</strong>
+      Une ou plusieurs pièces présentent un encombrement très important. Cette situation dépasse généralement le cadre d'un accompagnement mensuel léger : envisager une prestation de désencombrement initiale (hors formule) avant de démarrer l'abonnement, et signaler la situation à votre référent si nécessaire.</div>`;
+  } else if(exceeds){
+    warnZone.innerHTML = `<div class="warning-box"><strong>⚠ Volume au-delà de la formule Sérénité</strong>
+      Le total estimé dépasse 8h/mois. Prévoir un devis sur mesure ou des interventions ponctuelles complémentaires.</div>`;
+  }
+
+  // comparison table net prices
+  FORMULES.forEach(f=>{
+    const priceInput = document.getElementById('price-'+f.key);
+    if(!priceInput.value) priceInput.value = state.prices[f.key] || '';
+    const netCell = document.getElementById('net-'+f.key);
+    const val = parseFloat(priceInput.value);
+    netCell.textContent = isNaN(val) ? '—' : (val*0.5).toFixed(2)+' €';
+    document.getElementById('row-'+f.key).classList.toggle('highlight', formule && formule.key===f.key);
+  });
+
+  // summary table
+  const tbody = document.getElementById('summary-tbody');
+  tbody.innerHTML = state.pieces.map(p=>{
+    const niv = NIVEAUX.find(n=>n.key===p.niveau);
+    return `<tr><td>${p.type}</td><td><span class="lvl-pill" style="background:${niv.color};">${niv.label}</span></td><td class="mono">${p.temps} min</td></tr>`;
+  }).join('') || `<tr><td colspan="3" style="color:var(--ink-soft);">Aucune pièce diagnostiquée.</td></tr>`;
+}
+
+// live price inputs
+['essentiel','confort','serenite'].forEach(k=>{
+  document.getElementById('price-'+k).addEventListener('input', e=>{
+    state.prices[k] = e.target.value;
+    refreshResult();
+  });
+});
+
+/* ---------------- CLIENT / CONTEXTE bindings ---------------- */
+['c-nom','c-date','c-adresse','c-type','c-surface','c-nbpieces','c-intervenant'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=> syncClient());
+  document.getElementById(id).addEventListener('change', ()=> syncClient());
+});
+['x-frequence','x-accessibilite','x-autonomie','x-aidant','x-observations'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=> syncContexte());
+  document.getElementById(id).addEventListener('change', ()=> syncContexte());
+});
+function syncClient(){
+  state.client = {
+    nom: document.getElementById('c-nom').value,
+    date: document.getElementById('c-date').value,
+    adresse: document.getElementById('c-adresse').value,
+    type: document.getElementById('c-type').value,
+    surface: document.getElementById('c-surface').value,
+    nbpieces: document.getElementById('c-nbpieces').value,
+    intervenant: document.getElementById('c-intervenant').value
+  };
+}
+function syncContexte(){
+  state.contexte = {
+    frequence: document.getElementById('x-frequence').value,
+    accessibilite: document.getElementById('x-accessibilite').value,
+    autonomie: document.getElementById('x-autonomie').value,
+    aidant: document.getElementById('x-aidant').value,
+    observations: document.getElementById('x-observations').value
+  };
+}
+
+function applyStateToForm(){
+  document.getElementById('c-nom').value = state.client.nom || '';
+  document.getElementById('c-date').value = state.client.date || '';
+  document.getElementById('c-adresse').value = state.client.adresse || '';
+  document.getElementById('c-type').value = state.client.type || 'Appartement';
+  document.getElementById('c-surface').value = state.client.surface || '';
+  document.getElementById('c-nbpieces').value = state.client.nbpieces || '';
+  document.getElementById('c-intervenant').value = state.client.intervenant || '';
+
+  document.getElementById('x-frequence').value = state.contexte.frequence || 'Bimensuelle';
+  document.getElementById('x-accessibilite').value = state.contexte.accessibilite || 'Sans contrainte';
+  document.getElementById('x-autonomie').value = state.contexte.autonomie || 'Autonome';
+  document.getElementById('x-aidant').value = state.contexte.aidant || 'Non';
+  document.getElementById('x-observations').value = state.contexte.observations || '';
+
+  document.getElementById('price-essentiel').value = state.prices.essentiel || '';
+  document.getElementById('price-confort').value = state.prices.confort || '';
+  document.getElementById('price-serenite').value = state.prices.serenite || '';
+
+  renderPieces();
+  updateLiveGauge();
+}
+
+/* ---------------- SAVE / HISTORY (window.storage, shared) ---------------- */
+async function saveDiagnostic(){
+  syncClient(); syncContexte();
+  const statusEl = document.getElementById('save-status');
+  try{
+    if(!state.id){ state.id = 'd_' + Date.now(); }
+    await window.storage.set('diagnostic:'+state.id, JSON.stringify(state), true);
+
+    let indexRes = null;
+    try{ indexRes = await window.storage.get('diagnostics-index', true); }catch(e){ indexRes = null; }
+    let index = [];
+    if(indexRes && indexRes.value){ try{ index = JSON.parse(indexRes.value); }catch(e){ index = []; } }
+    index = index.filter(it=>it.id !== state.id);
+    index.unshift({
+      id: state.id,
+      nom: state.client.nom || 'Client sans nom',
+      date: state.client.date || '',
+      intervenant: state.client.intervenant || ''
+    });
+    await window.storage.set('diagnostics-index', JSON.stringify(index), true);
+
+    statusEl.textContent = '✓ Diagnostic enregistré (visible par toute l\'équipe).';
+    loadHistory();
+  }catch(err){
+    statusEl.textContent = "Erreur lors de l'enregistrement — réessayez.";
+    console.error(err);
+  }
+}
+
+async function loadHistory(){
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="hint">Chargement...</div>';
+  try{
+    const indexRes = await window.storage.get('diagnostics-index', true);
+    const index = indexRes && indexRes.value ? JSON.parse(indexRes.value) : [];
+    if(!index.length){
+      list.innerHTML = '<div class="hint">Aucun diagnostic enregistré pour le moment.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    index.forEach(item=>{
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      div.innerHTML = `
+        <div class="hi-main">
+          <strong>${item.nom}</strong>
+          <span>${item.date || 'date non renseignée'} ${item.intervenant ? '· '+item.intervenant : ''}</span>
+        </div>
+        <div class="history-actions">
+          <button class="btn btn-ghost btn-sm" data-id="${item.id}" data-act="open">Ouvrir</button>
+          <button class="btn btn-danger btn-sm" data-id="${item.id}" data-act="delete">Suppr.</button>
+        </div>`;
+      list.appendChild(div);
+    });
+    list.querySelectorAll('[data-act="open"]').forEach(b=>b.addEventListener('click', e=>openDiagnostic(e.target.dataset.id)));
+    list.querySelectorAll('[data-act="delete"]').forEach(b=>b.addEventListener('click', e=>deleteDiagnostic(e.target.dataset.id)));
+  }catch(err){
+    list.innerHTML = '<div class="hint">Historique indisponible pour le moment.</div>';
+    console.error(err);
+  }
+}
+
+async function openDiagnostic(id){
+  try{
+    const res = await window.storage.get('diagnostic:'+id, true);
+    if(res && res.value){
+      state = JSON.parse(res.value);
+      pieceCounter = state.pieces.length;
+      applyStateToForm();
+      goStep(1);
+      document.getElementById('save-status').textContent = '';
+    }
+  }catch(err){ console.error(err); }
+}
+
+async function deleteDiagnostic(id){
+  try{
+    await window.storage.delete('diagnostic:'+id, true);
+    const indexRes = await window.storage.get('diagnostics-index', true);
+    let index = indexRes && indexRes.value ? JSON.parse(indexRes.value) : [];
+    index = index.filter(it=>it.id !== id);
+    await window.storage.set('diagnostics-index', JSON.stringify(index), true);
+    loadHistory();
+  }catch(err){ console.error(err); }
+}
+
+function newDiagnostic(){
+  state = {id:null, client:{}, pieces:[], contexte:{}, prices:{essentiel:'',confort:'',serenite:''}};
+  pieceCounter = 0;
+  applyStateToForm();
+  document.getElementById('save-status').textContent = '';
+  goStep(1);
+}
+
+/* ---------------- INIT ---------------- */
+(function init(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('c-date').value = today;
+  addPiece();
+  updateLiveGauge();
+})();
+</script>
+</body>
+</html>
